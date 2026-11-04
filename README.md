@@ -2,6 +2,8 @@
 
 > 同一个账号，换台电脑，把整个会话连工作区一起搬过去。不联网、不登录、一个 zip 搞定。
 
+![CI](https://github.com/1637679883/wb-migrate/actions/workflows/check.yml/badge.svg)
+![Release](https://img.shields.io/github/v/release/1637679883/wb-migrate)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.8%2B-3776ab.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)
@@ -233,6 +235,12 @@ WORKBUDDY_HOME=/tmp/fake wb-migrate list
 ## 数据格式
 
 WorkBuddy 的本地数据布局、包内结构、路径编码算法都记在 [docs/data-format.md](docs/data-format.md)。
+
+## English
+
+`wb-migrate` moves a WorkBuddy session — transcript, file-modification history, task list and the whole workspace directory — from one machine to another as a single offline zip. It rewrites absolute paths for the new machine, registers the session in the local database, and never touches a server. Windows / macOS / Linux, Python 3.8+, or a standalone Windows exe from [Releases](../../releases/latest).
+
+It is a third-party tool built against WorkBuddy's local data layout, not an official one.
 
 ## 许可证
 

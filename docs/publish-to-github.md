@@ -4,6 +4,10 @@
 
 不需要理解 git 的原理，照着输命令就行。整篇只有六步，每步结束都有「怎么确认这步成功了」。
 
+> **当前状态：这六步已经全部做完了。** 仓库在 `https://github.com/1637679883/wb-migrate`，默认分支 `main`，Release `v1.0.0` 已挂着 `wb-migrate.exe`。
+> 所以这份文档现在有两种用法：一是当「我当时是怎么做的」的说明书看；二是将来在另一台机器上、或者另起一个项目时照着再走一遍。
+> 已经完成的部分我在下面各步开头标了 ✅，照着做时跳过即可。
+
 ---
 
 ## 第 0 步：先确认两件事
@@ -67,20 +71,23 @@ git config --global user.email
 
 ---
 
-## 第 3 步：把提交作者改成你自己
+## 第 3 步：确认提交作者是谁（✅ 已完成）
 
-现在仓库里那三条提交的作者是 `wb-migrate`，这是占位符，GitHub 上不显示是你提交的。改成你自己的：
+现在仓库里那几条提交的作者是 `1637679883 <1637679883@qq.com>`，就是仓库所有者的账号，GitHub 上会正常显示成你。
+
+如果你想把显示名换成别的（比如 `DrivingGod1980`），**只改配置不影响已有的提交**，历史里还是旧名字。要让历史跟着改，得重写：
 
 ```
 cd "C:/Users/Lenovo/WorkBuddy/2026-11-01-16-04-06/wb-migrate"
-git config user.name "你的名字"
+git config user.name "新名字"
 git config user.email "你注册GitHub用的邮箱"
 git rebase --root --exec "git commit --amend --reset-author --no-edit"
+git push --force-with-lease
 ```
 
-名字随便起，会显示在提交记录里。邮箱**必须**是你 GitHub 账号绑定的那个，否则提交不会记到你名下。
+邮箱**必须**是你 GitHub 账号绑定的那个，否则提交不会记到你名下。
 
-最后一条命令会把三条提交的作者重写一遍，输出里会滚过几行 `Executing: git commit --amend`，最后一行是 `Successfully rebased and updated`。
+最后那条 `git rebase --root` 会把所有提交的作者重写一遍，输出里会滚过几行 `Executing: git commit --amend`，最后一行是 `Successfully rebased and updated`。因为提交哈希全变了，远程和本地必须重新对齐，所以才需要 `--force-with-lease`——用 `--force-with-lease` 而不是 `--force`，万一远程刚被别人推过，它会把你的操作拦下来。
 
 **怎么确认成功**：
 
@@ -88,23 +95,21 @@ git rebase --root --exec "git commit --amend --reset-author --no-edit"
 git log --format="%an <%ae> | %s"
 ```
 
-三行的作者应该全是你的名字和邮箱。
+每行的作者都应该是你想显示的名字和邮箱。
 
 ---
 
-## 第 4 步：换成你自己的仓库地址
+## 第 4 步：克隆地址与分支名（✅ 已完成）
 
-README 里有一行 clone 地址还是占位符 `<你的账号>`，别人照抄会报错。
-
-打开 `wb-migrate/README.md`，找到第 45 行附近：
+README 里的 clone 地址已经是真实地址，没有占位符了：
 
 ```
-git clone https://github.com/<你的账号>/wb-migrate.git
+git clone https://github.com/1637679883/wb-migrate.git
 ```
 
-把 `<你的账号>` 换成你的 GitHub 用户名。只有一个地方要改。
+**如果你把这个项目 fork 或搬到自己的账号下**，记得把这行换成你自己的用户名，别人照抄才不会报错。全文只有这一处地址需要改。
 
-顺便把分支名统一成 `main`（GitHub 新仓库默认叫 main，本地现在叫 master，不改的话两边名字对不上）：
+分支名已经是 `main`，和 GitHub 一致。新建仓库时如果你是从 `master` 起步的，用这条改过来：
 
 ```
 git branch -M main
@@ -139,7 +144,7 @@ git push -u origin main
 branch 'main' set up to track 'origin/main'.
 ```
 
-**怎么确认成功**：刷新你的仓库页面，能看到 README 里的中文说明、绿色按钮上写着「Code」，还有 21 个文件。
+**怎么确认成功**：刷新你的仓库页面，能看到 README 里的中文说明、绿色按钮上写着「Code」，还有 22 个文件。
 
 ### 如果浏览器登录窗口没弹出来
 
@@ -171,7 +176,7 @@ git push -u origin main
 
 ---
 
-## 第 6 步：把 exe 挂到 Releases
+## 第 6 步：把 exe 挂到 Releases（✅ 已完成，见 v1.0.0）
 
 仓库里不放 exe（17 MB 的二进制文件塞进 git 会让仓库越来越臃肿），走 Releases 发布，那里专门放编译好的成品，别人点一下就能下载。
 
@@ -191,8 +196,10 @@ git push -u origin main
 - 单文件程序，不依赖 Python，不需要安装
 ```
 
-6. 最下面 **Attach binaries** 区域，把 `wb-migrate/dist/工作台迁移.exe` 拖进去。上传要一两分钟
+6. 最下面 **Attach binaries** 区域，把 `wb-migrate/dist/wb-migrate.exe` 拖进去。上传要一两分钟
 7. 点绿色按钮 **Publish release**
+
+附件名就是别人下载到的文件名，要和 README 里写的一致。`build.cmd` 现在直接产出 `dist/wb-migrate.exe`，不用手动改名。
 
 **怎么确认成功**：仓库首页右侧出现一个 `Releases` 区块，写着 `v1.0.0`，点进去能看到下载链接和 17 MB 的 exe 附件。
 

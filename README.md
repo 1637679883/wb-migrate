@@ -76,6 +76,8 @@ python wb_migrate.py import wb-20261103-1050-标题.zip --yes
 
 ## 命令行参考
 
+下面的 `wb-migrate` 是启动器：在仓库目录里敲 `wb-migrate`，Windows 走的是 `wb-migrate.cmd`，macOS / Linux 用 `./wb-migrate.sh`。想更直白一点，把它统一换成 `python wb_migrate.py`，参数一字不差。如果哪天把 exe 或启动器加进了 PATH，那就直接敲名字。
+
 ### list
 
 ```bash
@@ -185,11 +187,14 @@ wb_app.py          桌面外壳：原生窗口（pywebview/WebView2）+ 启动�
 wb_gui.py          界面后台：本地 HTTP 服务、任务队列、文件选择对话框
 ui.html            界面本体（纯静态，零外部依赖，可离线）
 make_icon.py       生成程序图标 app.ico（纯标准库画的，改配色可重出）
-build.cmd          一键打包 exe（Windows）
+build.cmd          一键打包 exe（Windows），产物是 dist/wb-migrate.exe
 wb-migrate.cmd/sh  命令行启动器（Windows / macOS / Linux）
 wb-gui.cmd/sh      浏览器版启动器（调试用）
+requirements.txt      运行桌面窗口要装的依赖
+requirements-dev.txt  开发额外要的（打包工具等）
 docs/data-format.md  WorkBuddy 数据结构、包格式、路径编码规则
 docs/publish-to-github.md  第一次把项目发布到 GitHub 的完整操作步骤
+.github/workflows/check.yml  提交后自动跑语法检查与 --version 冒烟
 ```
 
 `ui.html` 必须由后台提供数据，直接双击打开只会看到空壳。
@@ -209,7 +214,7 @@ python wb_app.py --check out.json --wait 3 --js "document.getElementById('btnDoc
 
 ```bash
 python -m PyInstaller --noconfirm --clean --onefile --windowed \
-  --name "工作台迁移" --icon app.ico --add-data "ui.html;." \
+  --name wb-migrate --icon app.ico --add-data "ui.html;." \
   --collect-all webview --collect-all pythonnet --collect-all clr_loader \
   --hidden-import webview.platforms.edgechromium \
   --exclude-module tkinter wb_app.py

@@ -2,6 +2,15 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循语义化版本。
 
+## [未发布]
+
+### 文档与构建
+
+- 打包产物统一命名为 `wb-migrate.exe`，与 README、Release 附件一致（窗口标题仍是「工作台迁移」）。
+- 包内说明文字里的程序名同步改正。
+- 发布指南标注各步完成状态，删掉「提交作者是占位符」「clone 地址是 `<你的账号>`」这类已经过期的描述。
+- README 补充命令行入口说明（`wb-migrate` 启动器与 `python wb_migrate.py` 的对应关系）、补全目录结构。
+
 ## [1.0.0] - 2026-11-03
 
 首个公开版本。

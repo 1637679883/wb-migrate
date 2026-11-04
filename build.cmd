@@ -4,7 +4,7 @@ setlocal
 cd /d "%~dp0"
 
 echo.
-echo   重新打包工作台迁移.exe
+echo   重新打包 wb-migrate.exe
 echo.
 
 set PY=
@@ -29,7 +29,7 @@ if errorlevel 1 (
 %PY% make_icon.py || goto :fail
 
 %PY% -m PyInstaller --noconfirm --clean --onefile --windowed ^
-  --name "工作台迁移" --icon app.ico ^
+  --name wb-migrate --icon app.ico ^
   --add-data "ui.html;." ^
   --collect-all webview --collect-all pythonnet --collect-all clr_loader ^
   --hidden-import webview.platforms.edgechromium ^
@@ -37,7 +37,7 @@ if errorlevel 1 (
   wb_app.py || goto :fail
 
 echo.
-echo   完成： dist\工作台迁移.exe
+echo   完成： dist\wb-migrate.exe
 echo.
 pause
 exit /b 0

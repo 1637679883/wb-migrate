@@ -706,7 +706,7 @@ def build_archive_readme(manifest):
     lines += [
         "",
         "导入方法（在目标电脑上）：",
-        "  打开「工作台迁移.exe」，在「接收进来」里选中这个文件；",
+        "  打开「wb-migrate.exe」（窗口标题是「工作台迁移」），在「接收进来」里选中这个文件；",
         "  或命令行 wb-migrate import <本压缩包路径>（先预演，再加 --yes 执行）。",
         "",
         "导入前会自动备份目标机的 workbuddy.db。",

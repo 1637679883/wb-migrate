@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-wb-app — 工作台迁移 桌面程序
+wb-migrate 桌面程序 — 工作台迁移
 
 双击即用的原生窗口程序。界面仍然是 ui.html，但由系统自带的 Edge WebView2
 内核渲染在应用程序自己的窗口里：没有地址栏、没有浏览器、没有端口要记。
@@ -298,7 +298,7 @@ def selftest(out_path):
 
 
 def main(argv=None):
-    ap = argparse.ArgumentParser(prog="wb-app", add_help=False)
+    ap = argparse.ArgumentParser(prog="wb-migrate", add_help=False)
     ap.add_argument("--selftest", metavar="OUT", default=None)
     ap.add_argument("--check", metavar="OUT", default=None, help="开窗口读 DOM 后自关，用于验证")
     ap.add_argument("--js", default=None, help="配合 --check 注入一段脚本，模拟真实点击")
@@ -309,7 +309,7 @@ def main(argv=None):
     a, _unknown = ap.parse_known_args(argv)
 
     if a.version:
-        print("wb-app " + APP_VERSION)
+        print("wb-migrate " + APP_VERSION)
         return 0
     if a.selftest:
         return selftest(a.selftest)

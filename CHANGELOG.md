@@ -6,6 +6,8 @@
 
 ### 文档与构建
 
+- 桌面程序的 `--version` 输出由 `wb-app 1.0.0` 改为 `wb-migrate 1.0.0`，与命令行版一致。
+- CI 用的 `actions/checkout`、`actions/setup-python` 升到 v7，去掉 Node20 弃用警告。
 - 打包产物统一命名为 `wb-migrate.exe`，与 README、Release 附件一致（窗口标题仍是「工作台迁移」）。
 - 包内说明文字里的程序名同步改正。
 - 发布指南标注各步完成状态，删掉「提交作者是占位符」「clone 地址是 `<你的账号>`」这类已经过期的描述。

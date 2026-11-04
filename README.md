@@ -189,6 +189,7 @@ build.cmd          一键打包 exe（Windows）
 wb-migrate.cmd/sh  命令行启动器（Windows / macOS / Linux）
 wb-gui.cmd/sh      浏览器版启动器（调试用）
 docs/data-format.md  WorkBuddy 数据结构、包格式、路径编码规则
+docs/publish-to-github.md  第一次把项目发布到 GitHub 的完整操作步骤
 ```
 
 `ui.html` 必须由后台提供数据，直接双击打开只会看到空壳。

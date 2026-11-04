@@ -1,0 +1,4 @@
+-r requirements.txt
+
+# 打包 exe 用
+pyinstaller>=6.0

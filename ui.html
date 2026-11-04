@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>wb-migrate · 对话搬迁器</title>
+<style>
+  :root{
+    --ink:#0d1524;
+    --ink2:#5a6780;
+    --ink3:#8d98ac;
+    --line:#e3e8f2;
+    --line2:#cfd7e6;
+    --paper:#fff;
+    --holo:linear-gradient(105deg,#a6e9ff 0%,#c9b6ff 38%,#ffc3e8 72%,#bde9ff 100%);
+    --holo-soft:linear-gradient(105deg,#eefbff,#f5f0ff 46%,#fff0fa);
+    --blue:#2f6bff;
+    --ok:#10b981;
+    --warn:#d99528;
+    --err:#e5484d;
+    --r:22px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font:13.5px/1.55 -apple-system,"Segoe UI Variable Display","Segoe UI",Inter,system-ui,"PingFang SC","Microsoft YaHei",sans-serif;
+    color:var(--ink);
+    background:
+      radial-gradient(900px 520px at 10% -12%,#e6f3ff 0%,transparent 62%),
+      radial-gradient(760px 460px at 94% -6%,#f4eaff 0%,transparent 58%),
+      #f5f7fb;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+    background-image:
+      linear-gradient(rgba(120,140,180,.075) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(120,140,180,.075) 1px,transparent 1px);
+    background-size:46px 46px;
+    -webkit-mask-image:radial-gradient(ellipse 80% 60% at 50% 0%,#000 0%,transparent 78%);
+    mask-image:radial-gradient(ellipse 80% 60% at 50% 0%,#000 0%,transparent 78%);
+  }
+  ::selection{background:#cfe0ff}
+
+  /* ---------- 顶栏 ---------- */
+  .top{
+    position:sticky;top:0;z-index:20;
+    display:flex;align-items:center;justify-content:space-between;gap:16px;
+    padding:14px 28px;
+    background:rgba(255,255,255,.72);
+    backdrop-filter:blur(16px) saturate(1.5);
+    border-bottom:1px solid rgba(207,215,230,.7);
+  }
+  .brand{display:flex;align-items:center;gap:11px}
+  .orb{
+    width:30px;height:30px;border-radius:50%;flex:none;
+    background:
+      radial-gradient(circle at 34% 26%,#fff 0 10%,rgba(255,255,255,.15) 32%,transparent 56%),
+      conic-gradient(from 205deg,#9be8ff,#c9b6ff,#ffc2e8,#bfe9ff,#9be8ff);
+    box-shadow:inset 0 -3px 7px rgba(70,100,175,.38),inset 0 2px 4px rgba(255,255,255,.9),0 2px 12px rgba(130,160,255,.4);
+  }
+  .btext{display:flex;flex-direction:column;line-height:1.15}
+  .btext b{font-size:13px;letter-spacing:.16em;font-weight:650}
+  .btext span{font-size:10.5px;color:var(--ink3);letter-spacing:.24em;margin-top:2px}
+  .topright{display:flex;align-items:center;gap:8px}
+  .chip{
+    display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 12px;
+    border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.8);
+    font-size:11.5px;color:var(--ink2);letter-spacing:.02em;white-space:nowrap;
+  }
+  .chip i{width:6px;height:6px;border-radius:50%;background:var(--ink3);flex:none}
+  .chip.on i{background:var(--warn);box-shadow:0 0 0 3px rgba(217,149,40,.16)}
+  .chip.off i{background:var(--ok);box-shadow:0 0 0 3px rgba(16,185,129,.16)}
+
+  /* ---------- 布局 ---------- */
+  .wrap{position:relative;z-index:1;max-width:1040px;margin:0 auto;padding:34px 28px 90px}
+  .lead{margin:0 0 22px;display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap}
+  .lead h1{margin:0;font-size:25px;letter-spacing:-.4px;font-weight:600}
+  .lead p{margin:5px 0 0;font-size:12.5px;color:var(--ink3)}
+  .pathnote{font:11.5px/1.5 ui-monospace,"Cascadia Code",Consolas,monospace;color:var(--ink3);max-width:420px;text-align:right;word-break:break-all}
+
+  /* ---------- 分段切换 ---------- */
+  .switch{display:inline-flex;padding:4px;gap:4px;border-radius:999px;background:#e9edf6;border:1px solid var(--line2);margin-bottom:20px}
+  .seg{
+    display:inline-flex;align-items:center;gap:8px;
+    height:34px;padding:0 18px;border:0;border-radius:999px;background:transparent;
+    font:inherit;font-size:12.5px;font-weight:550;color:var(--ink2);cursor:pointer;transition:.18s;
+  }
+  .seg .num{
+    display:grid;place-items:center;width:17px;height:17px;border-radius:50%;
+    background:rgba(255,255,255,.75);border:1px solid var(--line2);font-size:9.5px;color:var(--ink3);font-weight:600;
+  }
+  .seg:hover{color:var(--ink)}
+  .seg.active{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(16,28,50,.08),0 4px 12px -6px rgba(16,28,50,.25)}
+  .seg.active .num{background:var(--holo);border-color:#aebcda;color:var(--ink)}
+
+  /* ---------- 卡片 ---------- */
+  .panel{
+    background:var(--paper);border:1px solid var(--line);border-radius:var(--r);
+    box-shadow:0 1px 2px rgba(16,28,50,.04),0 30px 70px -50px rgba(16,28,50,.55);
+    overflow:hidden;
+  }
+  .panel[hidden]{display:none}
+  .phead{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;padding:24px 26px 18px;border-bottom:1px solid var(--line)}
+  .phead h2{margin:0;font-size:15px;font-weight:600;letter-spacing:-.1px}
+  .phead p{margin:5px 0 0;font-size:12px;color:var(--ink3);max-width:560px}
+  .step{padding:20px 26px}
+  .step + .step{border-top:1px solid var(--line)}
+  .slabel{display:flex;align-items:center;gap:9px;font-size:12px;font-weight:600;letter-spacing:.02em;margin-bottom:12px}
+  .slabel > span{
+    display:grid;place-items:center;width:19px;height:19px;border-radius:50%;flex:none;
+    background:var(--holo-soft);border:1px solid var(--line2);font-size:10px;color:var(--ink2);font-weight:600;
+  }
+  .slabel em{margin-left:auto;font-style:normal;font-size:11.5px;color:var(--ink3);font-weight:400}
+
+  /* ---------- 会话列表 ---------- */
+  .listbar{display:flex;align-items:center;gap:14px;padding:0 2px 10px}
+  .linkbtn{
+    background:none;border:0;padding:0;font:inherit;font-size:11.5px;color:var(--blue);
+    cursor:pointer;letter-spacing:.02em;
+  }
+  .linkbtn:hover{text-decoration:underline}
+  .mini{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--ink3);cursor:pointer;margin-left:auto}
+  .list{max-height:330px;overflow:auto;border:1px solid var(--line);border-radius:14px;background:#fcfdff}
+  .list::-webkit-scrollbar{width:9px}
+  .list::-webkit-scrollbar-thumb{background:#d8dfec;border-radius:9px;border:3px solid #fcfdff}
+  .row{
+    display:flex;align-items:flex-start;gap:12px;padding:13px 15px;cursor:pointer;
+    border-bottom:1px solid #eef1f7;transition:background .14s;
+  }
+  .row:last-child{border-bottom:0}
+  .row:hover{background:#f6f9ff}
+  .row.on{background:linear-gradient(90deg,#f4f9ff,#fbf8ff 70%,#fcfdff)}
+  .chk{
+    appearance:none;-webkit-appearance:none;width:17px;height:17px;margin:2px 0 0;flex:none;
+    border:1.5px solid var(--line2);border-radius:6px;background:linear-gradient(#fff,#f2f5fb);
+    cursor:pointer;position:relative;transition:.15s;
+  }
+  .chk:hover{border-color:#a9b8d6}
+  .chk:checked{background:var(--holo);border-color:#9fb0cc}
+  .chk:checked::after{
+    content:"";position:absolute;left:5px;top:1.5px;width:4px;height:9px;
+    border:solid var(--ink);border-width:0 1.8px 1.8px 0;transform:rotate(42deg);
+  }
+  .rmain{min-width:0;flex:1}
+  .rtitle{font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rmeta{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;align-items:center}
+  .tag{
+    font-size:10.5px;color:var(--ink2);background:#f1f4fa;border:1px solid #e6eaf3;
+    padding:1px 7px;border-radius:6px;font-variant-numeric:tabular-nums;
+  }
+  .tag.warn{color:#9a6814;background:#fdf5e6;border-color:#f3e2c2}
+  .tag.ghost{color:var(--ink3);background:transparent;border-color:var(--line)}
+  .dim{font-size:10.5px;color:var(--ink3);margin-left:auto;font-variant-numeric:tabular-nums}
+  .empty{padding:34px 16px;text-align:center;color:var(--ink3);font-size:12px}
+
+  /* ---------- 输入 ---------- */
+  .field{display:flex;gap:8px;align-items:center}
+  .field input[type=text]{
+    flex:1;min-width:0;height:38px;padding:0 13px;border-radius:11px;
+    border:1px solid var(--line2);background:#fbfcfe;color:var(--ink);
+    font:12.5px/1.4 ui-monospace,"Cascadia Code",Consolas,monospace;
+  }
+  .field input[type=text]:focus{outline:none;border-color:#9db4e0;box-shadow:0 0 0 3px rgba(47,107,255,.12);background:#fff}
+  .hint{font-size:11px;color:var(--ink3);margin-top:8px}
+  .actions{display:flex;align-items:center;gap:14px;margin-top:18px;flex-wrap:wrap}
+  .actions .hint{margin:0}
+  .btn{
+    height:38px;padding:0 17px;border-radius:999px;cursor:pointer;
+    border:1px solid var(--line2);background:linear-gradient(180deg,#fff,#eef1f8);
+    color:var(--ink);font:inherit;font-size:12.5px;font-weight:550;white-space:nowrap;
+    box-shadow:inset 0 1px 0 #fff,0 1px 2px rgba(16,28,50,.06);
+    transition:transform .16s,box-shadow .16s,border-color .16s;
+  }
+  .btn:hover:not(:disabled){transform:translateY(-1px);border-color:#b7c5e2;box-shadow:inset 0 1px 0 #fff,0 10px 20px -12px rgba(47,107,255,.6)}
+  .btn:active:not(:disabled){transform:translateY(0)}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .btn.ghost{background:transparent;box-shadow:none;border-color:var(--line2)}
+  .btn.ghost:hover:not(:disabled){background:#f7f9fe}
+  .btn.holo{background:var(--holo);border-color:#aebcda;padding:0 22px}
+  .btn.ink{background:linear-gradient(180deg,#1b2436,#0d1524);color:#fff;border-color:#0b1220;padding:0 24px}
+  .btn.ink:hover:not(:disabled){box-shadow:0 12px 24px -14px rgba(13,21,36,.9)}
+  .btn.sm{height:30px;padding:0 13px;font-size:11.5px}
+
+  /* ---------- 开关 ---------- */
+  .opts{display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center}
+  .opt{display:inline-flex;align-items:center;gap:9px;cursor:pointer;font-size:12px;color:var(--ink2);user-select:none}
+  .opt input{position:absolute;opacity:0;pointer-events:none}
+  .sw{width:36px;height:21px;border-radius:999px;background:#e4e9f3;border:1px solid #d2dae8;position:relative;transition:.2s;flex:none}
+  .sw::after{
+    content:"";position:absolute;top:2px;left:2px;width:15px;height:15px;border-radius:50%;
+    background:linear-gradient(#fff,#edf1f8);box-shadow:0 1px 2px rgba(16,28,50,.25);transition:.2s;
+  }
+  .opt input:checked + .sw{background:var(--holo);border-color:#a9b9d8}
+  .opt input:checked + .sw::after{left:17px}
+  .opt input:focus-visible + .sw{box-shadow:0 0 0 3px rgba(47,107,255,.18)}
+
+  /* ---------- 包信息 ---------- */
+  .pkg{
+    margin-top:14px;border:1px solid var(--line);border-radius:16px;overflow:hidden;
+    background:linear-gradient(180deg,#fbfcff,#fff);
+  }
+  .pkg[hidden]{display:none}
+  .pkgtop{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--holo-soft);border-bottom:1px solid var(--line)}
+  .pkgnum{font-size:19px;font-weight:600;letter-spacing:-.5px;font-variant-numeric:tabular-nums}
+  .pkgtxt{font-size:11px;color:var(--ink2)}
+  .pkgbody{padding:4px 16px 12px}
+  .kv{display:flex;gap:12px;padding:7px 0;border-bottom:1px dashed #eef1f7;font-size:11.5px}
+  .kv:last-child{border-bottom:0}
+  .kv b{color:var(--ink3);font-weight:400;min-width:72px;flex:none}
+  .kv span{color:var(--ink2);word-break:break-all}
+
+  /* ---------- 结果提示 ---------- */
+  .note{display:flex;gap:10px;padding:12px 14px;border-radius:13px;font-size:12px;line-height:1.5;margin-top:14px}
+  .note[hidden]{display:none}
+  .note i{font-style:normal;flex:none}
+  .note.warn{background:#fdf7ea;border:1px solid #f0e0c0;color:#8a5f10}
+  .note.ok{background:#effaf5;border:1px solid #ccefe0;color:#116b4e}
+  .note.bad{background:#fdf1f1;border:1px solid #f3d3d4;color:#9d2f33}
+
+  /* ---------- 控制台 ---------- */
+  .console{
+    margin-top:18px;border-radius:18px;overflow:hidden;border:1px solid #0b1220;
+    background:#0d1420;box-shadow:0 24px 60px -40px rgba(13,20,32,.9);
+    display:none;
+  }
+  .console.show{display:block;animation:rise .3s ease}
+  @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .chead{
+    display:flex;align-items:center;gap:10px;padding:9px 14px;
+    background:linear-gradient(180deg,#1a2333,#141c29);border-bottom:1px solid #222d40;
+    font-size:11px;color:#7f8da6;letter-spacing:.04em;
+  }
+  .dots{display:flex;gap:5px}
+  .dots i{width:8px;height:8px;border-radius:50%;background:#2c3a52}
+  .dots i:nth-child(1){background:#ff6b6b}
+  .dots i:nth-child(2){background:#ffd166}
+  .dots i:nth-child(3){background:#4ecdc4}
+  .chead .ctime{margin-left:auto;font-variant-numeric:tabular-nums;color:#5c6a82}
+  .cbody{
+    margin:0;padding:14px 16px;max-height:250px;overflow:auto;
+    font:11.5px/1.75 ui-monospace,"Cascadia Code",Consolas,monospace;color:#c3d3ec;white-space:pre-wrap;word-break:break-all;
+  }
+  .cbody::-webkit-scrollbar{width:9px}
+  .cbody::-webkit-scrollbar-thumb{background:#25314a;border-radius:9px;border:3px solid #0d1420}
+  .cbody .e{color:#ff8b8b}
+  .cbody .w{color:#f2c879}
+  .cbody .g{color:#5d6d88}
+
+  /* ---------- 进度 ---------- */
+  .prog{height:2px;background:#1a2333;overflow:hidden;position:relative}
+  .prog::after{
+    content:"";position:absolute;inset:0;width:38%;
+    background:var(--holo);animation:slide 1.15s ease-in-out infinite;
+  }
+  @keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(320%)}}
+
+  /* ---------- 提示条 ---------- */
+  .toast{
+    position:fixed;left:50%;bottom:28px;transform:translate(-50%,20px);z-index:80;
+    display:flex;align-items:center;gap:10px;padding:11px 18px;border-radius:999px;
+    background:rgba(13,21,36,.94);color:#fff;font-size:12.5px;
+    box-shadow:0 18px 40px -20px rgba(13,21,36,.9);
+    opacity:0;pointer-events:none;transition:.25s;
+  }
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+  .toast.bad{background:rgba(160,36,40,.96)}
+
+  .finish{display:none;padding:22px 26px;border-top:1px solid var(--line);background:var(--holo-soft)}
+  .finish.show{display:block}
+  .finish h3{margin:0 0 4px;font-size:14px;font-weight:600}
+  .finish p{margin:0 0 14px;font-size:12px;color:var(--ink2)}
+  .finish .acts{display:flex;gap:8px;flex-wrap:wrap}
+
+  @media (max-width:720px){
+    .wrap{padding:24px 16px 70px}
+    .top{padding:12px 16px}
+    .topright .chip:nth-child(1){display:none}
+    .pathnote{display:none}
+    .lead h1{font-size:21px}
+    .phead,.step{padding-left:18px;padding-right:18px}
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">
+    <div class="orb"></div>
+    <div class="btext"><b>WB MIGRATE</b><span>对话搬迁器</span></div>
+  </div>
+  <div class="topright">
+    <div class="chip" id="hostChip">本机</div>
+    <div class="chip" id="statusChip"><i></i><span>检测中</span></div>
+    <button class="btn ghost sm" id="btnDoctor">环境自检</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="lead">
+    <div>
+      <h1>换台电脑，对话接着聊</h1>
+      <p>同一个账号，把整段对话和它用到的工作目录一起搬过去。</p>
+    </div>
+    <div class="pathnote" id="pathNote"></div>
+  </div>
+
+  <div class="switch">
+    <button class="seg active" data-tab="export"><span class="num">1</span>打包带走</button>
+    <button class="seg" data-tab="import"><span class="num">2</span>接收进来</button>
+  </div>
+
+  <!-- ========== 导出 ========== -->
+  <section class="panel" id="panel-export">
+    <div class="phead">
+      <div>
+        <h2>在这台电脑上打包</h2>
+        <p>勾选会话，打成一个 zip。拷到另一台电脑，用「接收进来」导入即可。</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="slabel"><span>1</span>选择要带走的会话 <em id="selCount">已选 0</em></div>
+      <div class="listbar">
+        <button class="linkbtn" id="selAll">全选</button>
+        <button class="linkbtn" id="selNone">清空</button>
+        <label class="mini"><input type="checkbox" id="showDeleted"> 显示回收站里的会话</label>
+      </div>
+      <div class="list" id="sessionList">
+        <div class="empty">正在读取会话…</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="slabel"><span>2</span>包括哪些内容</div>
+      <div class="opts">
+        <label class="opt"><input type="checkbox" id="withWorkspace" checked><span class="sw"></span>包含工作目录文件</label>
+        <span class="hint" style="margin:0">关掉则只搬对话本身，工作目录里的文件不带过去。</span>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="slabel"><span>3</span>保存到</div>
+      <div class="field">
+        <input type="text" id="exportPath" spellcheck="false">
+        <button class="btn ghost" id="browseExport">选择位置</button>
+      </div>
+      <div class="hint">打包时单文件超过 300MB 会被跳过，避免生成超大包。</div>
+      <div class="actions">
+        <button class="btn ink" id="btnExport" disabled>开始打包</button>
+        <span class="hint" id="exportNote">先在上方勾选至少一个会话。</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 导入 ========== -->
+  <section class="panel" id="panel-import" hidden>
+    <div class="phead">
+      <div>
+        <h2>把这台电脑接收</h2>
+        <p>选择另一台电脑带来的 zip。导入前会先预览一遍，确认无误再真正写入。</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="slabel"><span>1</span>选择迁移包</div>
+      <div class="field">
+        <input type="text" id="importPath" placeholder="点右边选择 zip 文件，或直接把路径粘到这里" spellcheck="false">
+        <button class="btn ghost" id="browseImport">选择文件</button>
+      </div>
+
+      <div class="pkg" id="pkgCard" hidden>
+        <div class="pkgtop">
+          <div class="pkgnum" id="pkgCount">0</div>
+          <div class="pkgtxt" id="pkgCountLabel">个对话</div>
+          <button class="btn sm ghost" id="pkgToggle" style="margin-left:auto">收起明细</button>
+        </div>
+        <div class="pkgbody" id="pkgBody">
+          <div class="kv"><b>来源</b><span id="pkgHost">-</span></div>
+          <div class="kv"><b>打包时间</b><span id="pkgTime">-</span></div>
+          <div class="kv"><b>体积</b><span id="pkgSize">-</span></div>
+          <div id="pkgSessions"></div>
+        </div>
+      </div>
+
+      <div class="note warn" id="conflictNote" hidden><i>!</i><span></span></div>
+      <div class="note bad" id="pkgError" hidden><i>×</i><span></span></div>
+    </div>
+
+    <div class="step">
+      <div class="slabel"><span>2</span>放到哪里</div>
+      <div class="field">
+        <input type="text" id="importRoot" spellcheck="false">
+        <button class="btn ghost" id="browseRoot">选择目录</button>
+      </div>
+      <div class="hint">每个对话会在该目录下建一个同名文件夹，里面的路径会自动改成这台机器的。</div>
+    </div>
+
+    <div class="step">
+      <div class="slabel"><span>3</span>选项</div>
+      <div class="opts">
+        <label class="opt"><input type="checkbox" id="optNewId"><span class="sw"></span>重复的对话另存一份</label>
+        <label class="opt"><input type="checkbox" id="optOverwrite"><span class="sw"></span>覆盖同名文件</label>
+        <label class="opt"><input type="checkbox" id="optNoWs"><span class="sw"></span>只导入对话</label>
+      </div>
+      <div class="note warn" id="runNote" hidden><i>!</i><span>WorkBuddy 正在运行，导入前请先完全退出它，否则数据库可能写不进去。</span></div>
+      <div class="actions">
+        <button class="btn ink" id="btnImport" disabled>开始导入</button>
+        <span class="hint" id="importNote">先选择一个迁移包。</span>
+      </div>
+    </div>
+
+    <div class="finish" id="finishBox">
+      <h3>导入完成</h3>
+      <p>现在完全退出 WorkBuddy 再重新打开，左侧列表里就能看到这些对话了。</p>
+      <div class="acts">
+        <button class="btn holo sm" id="btnRevealRoot">打开工作目录</button>
+        <button class="btn ghost sm" id="btnAgainImport">再导一个包</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="console" id="console">
+    <div class="chead">
+      <span class="dots"><i></i><i></i><i></i></span>
+      <span id="cTitle">运行日志</span>
+      <span class="ctime" id="cTime"></span>
+    </div>
+    <div class="prog" id="cProg"></div>
+    <pre class="cbody" id="cBody"></pre>
+  </section>
+</div>
+
+<div class="toast" id="toast"><span id="toastText"></span></div>
+
+<script>
+(function(){
+  "use strict";
+
+  var TOKEN = new URLSearchParams(location.search).get("t") || "";
+  var S = { state: null, tab: "export", selected: new Set(), job: null, since: 0,
+            running: false, timer: null };
+
+  var $ = function(id){ return document.getElementById(id); };
+  var el = {
+    hostChip: $("hostChip"), statusChip: $("statusChip"), pathNote: $("pathNote"),
+    sessionList: $("sessionList"), selCount: $("selCount"), selAll: $("selAll"),
+    selNone: $("selNone"), showDeleted: $("showDeleted"),
+    exportPath: $("exportPath"), browseExport: $("browseExport"), btnExport: $("btnExport"),
+    exportNote: $("exportNote"), withWorkspace: $("withWorkspace"),
+    importPath: $("importPath"), browseImport: $("browseImport"), importRoot: $("importRoot"),
+    browseRoot: $("browseRoot"), btnImport: $("btnImport"), importNote: $("importNote"),
+    pkgCard: $("pkgCard"), pkgCount: $("pkgCount"), pkgCountLabel: $("pkgCountLabel"),
+    pkgBody: $("pkgBody"), pkgHost: $("pkgHost"), pkgTime: $("pkgTime"), pkgSize: $("pkgSize"),
+    pkgSessions: $("pkgSessions"), pkgToggle: $("pkgToggle"),
+    conflictNote: $("conflictNote"), pkgError: $("pkgError"), runNote: $("runNote"),
+    optNewId: $("optNewId"), optOverwrite: $("optOverwrite"), optNoWs: $("optNoWs"),
+    console: $("console"), cTitle: $("cTitle"), cBody: $("cBody"), cTime: $("cTime"),
+    cProg: $("cProg"), toast: $("toast"), toastText: $("toastText"),
+    finishBox: $("finishBox"), btnRevealRoot: $("btnRevealRoot"),
+    btnAgainImport: $("btnAgainImport"), btnDoctor: $("btnDoctor")
+  };
+
+  // ---------------- 网络 ----------------
+  function api(path, body){
+    var opt = { headers: { "X-WB-Token": TOKEN } };
+    if (body !== undefined){
+      opt.method = "POST";
+      opt.headers["Content-Type"] = "application/json";
+      opt.body = JSON.stringify(body);
+    }
+    return fetch(path, opt).then(function(r){ return r.json(); })
+      .catch(function(){ return { ok: false, error: "和本地服务断开了，请重新启动界面。" }; });
+  }
+
+  function toast(msg, bad){
+    el.toastText.textContent = msg;
+    el.toast.className = "toast show" + (bad ? " bad" : "");
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function(){ el.toast.className = "toast"; }, 3200);
+  }
+
+  function human(n){
+    n = Number(n || 0);
+    var u = ["B","KB","MB","GB"], i = 0;
+    while (n >= 1024 && i < 3){ n /= 1024; i++; }
+    return (i === 0 ? n.toFixed(0) : n.toFixed(1)) + " " + u[i];
+  }
+
+  function num(n){ return String(n || 0).replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
+
+  // ---------------- 会话列表 ----------------
+  function renderList(){
+    var list = (S.state && S.state.sessions) || [];
+    if (!list.length){
+      el.sessionList.innerHTML = '<div class="empty">这台电脑上还没有对话记录。</div>';
+      return;
+    }
+    var html = "";
+    list.forEach(function(s){
+      var on = S.selected.has(s.id);
+      var tags = [];
+      tags.push('<span class="tag">' + num(s.lines) + " 条</span>");
+      tags.push('<span class="tag">' + s.size_text + "</span>");
+      if (!s.has_transcript) tags.push('<span class="tag warn">正文缺失</span>');
+      else if (s.ws_exists) tags.push('<span class="tag ghost">工作目录 ' + s.ws_size_text + "</span>");
+      else tags.push('<span class="tag ghost">无工作目录</span>');
+      if (s.deleted) tags.push('<span class="tag warn">回收站</span>');
+
+      html += '<div class="row' + (on ? " on" : "") + '" data-id="' + s.id + '">' +
+        '<input class="chk" type="checkbox"' + (on ? " checked" : "") + '>' +
+        '<div class="rmain"><div class="rtitle">' + esc(s.title) + '</div>' +
+        '<div class="rmeta">' + tags.join("") +
+        '<span class="dim">' + (s.updated_text || "") + "</span></div></div></div>";
+    });
+    el.sessionList.innerHTML = html;
+
+    Array.prototype.forEach.call(el.sessionList.querySelectorAll(".row"), function(row){
+      row.addEventListener("click", function(e){
+        var id = row.getAttribute("data-id");
+        var box = row.querySelector(".chk");
+        if (e.target !== box){ box.checked = !box.checked; }
+        if (box.checked) S.selected.add(id); else S.selected.delete(id);
+        row.classList.toggle("on", box.checked);
+        syncExportButton();
+      });
+    });
+  }
+
+  function esc(s){
+    return String(s == null ? "" : s).replace(/[&<>"]/g, function(c){
+      return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c];
+    });
+  }
+
+  function syncExportButton(){
+    var n = S.selected.size;
+    el.selCount.textContent = "已选 " + n;
+    el.btnExport.disabled = n === 0 || S.running;
+    el.exportNote.textContent = n === 0
+      ? "先在上方勾选至少一个会话。"
+      : "将打包 " + n + " 个会话" + (el.withWorkspace.checked ? "（含工作目录文件）" : "（只含对话）");
+  }
+
+  // ---------------- 状态 ----------------
+  function loadState(){
+    var url = "/api/state" + (el.showDeleted.checked ? "?deleted=1" : "");
+    return api(url).then(function(r){
+      if (!r.ok){ toast(r.error || "读取失败", true); return; }
+      S.state = r;
+      el.hostChip.textContent = r.host || "本机";
+      el.pathNote.textContent = r.wb_home;
+      el.statusChip.className = "chip " + (r.app_running ? "on" : "off");
+      el.statusChip.querySelector("span").textContent = r.app_running ? "WorkBuddy 运行中" : "WorkBuddy 已退出";
+      el.runNote.hidden = !r.app_running;
+      if (!el.exportPath.value) el.exportPath.value = r.default_export;
+      if (!el.importRoot.value) el.importRoot.value = r.default_root;
+      el.btnDoctor.title = "工具 " + r.tool_version + " · Python " + r.python;
+      var alive = new Set(r.sessions.map(function(s){ return s.id; }));
+      S.selected.forEach(function(id){ if (!alive.has(id)) S.selected.delete(id); });
+      renderList();
+      syncExportButton();
+    });
+  }
+
+  // ---------------- 任务 ----------------
+  function watch(jobId, title, onDone){
+    clearInterval(S.timer);
+    S.running = true; S.since = 0;
+    el.console.classList.add("show");
+    el.cTitle.textContent = title;
+    el.cBody.innerHTML = "";
+    el.cProg.style.display = "block";
+    el.cTime.textContent = "0.0s";
+    setBusy(true);
+
+    S.timer = setInterval(function(){
+      api("/api/job?id=" + jobId + "&since=" + S.since).then(function(r){
+        if (!r.ok){
+          clearInterval(S.timer); S.running = false; setBusy(false);
+          toast(r.error || "任务丢失", true);
+          return;
+        }
+        if (r.lines && r.lines.length){
+          var html = r.lines.map(function(l){
+            var cls = l.indexOf("[错误]") === 0 ? "e" : (l.indexOf("[注意]") === 0 ? "w" : (l.charAt(0) === " " || l === "" ? "g" : ""));
+            return cls ? '<span class="' + cls + '">' + esc(l) + "</span>" : esc(l);
+          }).join("\n");
+          el.cBody.insertAdjacentHTML("beforeend", (el.cBody.innerHTML ? "\n" : "") + html);
+          el.cBody.scrollTop = el.cBody.scrollHeight;
+          S.since = r.next;
+        }
+        el.cTime.textContent = r.elapsed.toFixed(1) + "s";
+
+        if (r.status !== "running"){
+          clearInterval(S.timer);
+          S.running = false;
+          setBusy(false);
+          el.cProg.style.display = "none";
+          el.cTime.textContent = "完成 · " + r.elapsed.toFixed(1) + "s" + (r.status === "error" ? " · 失败" : "");
+          if (r.status === "error"){
+            toast(r.error || "操作失败", true);
+            if (r.error) el.cBody.insertAdjacentHTML("beforeend", '\n<span class="e">— ' + esc(r.error) + "</span>");
+            el.cBody.scrollTop = el.cBody.scrollHeight;
+          } else {
+            toast("完成", false);
+            if (onDone) onDone(r.result || {});
+          }
+        }
+      });
+    }, 450);
+  }
+
+  function setBusy(on){
+    el.btnExport.disabled = on || S.selected.size === 0;
+    el.btnImport.disabled = on || !el.pkg;
+    el.browseExport.disabled = on;
+    el.browseImport.disabled = on;
+    el.browseRoot.disabled = on;
+  }
+
+  // ---------------- 导出 ----------------
+  el.btnExport.addEventListener("click", function(){
+    if (S.running || !S.selected.size) return;
+    var out = el.exportPath.value.trim();
+    if (!out){ toast("先填写保存位置", true); return; }
+    el.finishBox.classList.remove("show");
+    api("/api/export", {
+      ids: Array.from(S.selected),
+      out: out,
+      include_workspace: el.withWorkspace.checked
+    }).then(function(r){
+      if (!r.ok){ toast(r.error || "启动失败", true); return; }
+      watch(r.job, "正在打包", function(res){
+        if (res && res.out){
+          el.exportNote.innerHTML = '已生成：<b>' + esc(res.out) + "</b>（" + (res.size_text || "") + "）";
+          api("/api/reveal", { path: res.out });
+        }
+      });
+    });
+  });
+
+  el.browseExport.addEventListener("click", function(){
+    api("/api/pick", { kind: "save", initial: el.exportPath.value }).then(function(r){
+      if (r.path) el.exportPath.value = r.path;
+      else toast("没选到位置，也可以把路径直接粘进输入框");
+    });
+  });
+
+  el.selAll.addEventListener("click", function(){
+    (S.state.sessions || []).forEach(function(s){ S.selected.add(s.id); });
+    renderList(); syncExportButton();
+  });
+  el.selNone.addEventListener("click", function(){
+    S.selected.clear(); renderList(); syncExportButton();
+  });
+  el.showDeleted.addEventListener("change", loadState);
+  el.withWorkspace.addEventListener("change", syncExportButton);
+
+  // ---------------- 导入 ----------------
+  var inspTimer = null;
+  function scheduleInspect(){
+    clearTimeout(inspTimer);
+    var p = el.importPath.value.trim();
+    el.pkg = null;
+    el.btnImport.disabled = true;
+    el.finishBox.classList.remove("show");
+    if (!p){
+      el.pkgCard.hidden = true;
+      el.pkgError.hidden = true;
+      el.conflictNote.hidden = true;
+      el.importNote.textContent = "先选择一个迁移包。";
+      return;
+    }
+    el.importNote.textContent = "正在读取包内容…";
+    inspTimer = setTimeout(function(){ doInspect(p); }, 260);
+  }
+
+  function doInspect(p){
+    return api("/api/inspect", { package: p }).then(function(r){
+      if (!r.ok){
+        el.pkg = null; el.btnImport.disabled = true;
+        el.pkgCard.hidden = true;
+        el.pkgError.hidden = false;
+        el.pkgError.querySelector("span").textContent = r.error || "读取失败";
+        el.importNote.textContent = "这个包不能用。";
+        return r;
+      }
+      el.pkg = r;
+      el.pkgError.hidden = true;
+      el.pkgCard.hidden = false;
+      el.pkgCount.textContent = r.sessions.length;
+      el.pkgCountLabel.textContent = "个对话 · " + r.size_text;
+      el.pkgHost.textContent = (r.source_host || "未知") + (r.source_os ? " · " + r.source_os : "");
+      el.pkgTime.textContent = (r.created_at || "-").replace("T", " ").slice(0, 19);
+      el.pkgSize.textContent = "压缩后 " + r.size_text + " · 解压后 " + r.unpacked_text;
+
+      el.pkgSessions.innerHTML = r.sessions.map(function(s){
+        var tag = s.ws_included
+          ? '<span class="tag ghost">' + s.ws_files + " 个文件 " + s.ws_bytes_text + "</span>"
+          : '<span class="tag ghost">仅对话</span>';
+        var c = s.conflict ? '<span class="tag warn">本机已有</span>' : "";
+        return '<div class="kv"><b>' + num(s.messages) + " 条</b><span>" + esc(s.title) +
+          ' <span style="opacity:.55">' + esc(shortPath(s.cwd)) + "</span></span>" + tag + c + "</div>";
+      }).join("");
+
+      if (r.source_home && !r.same_home){
+        el.pkgSessions.insertAdjacentHTML("beforeend",
+          '<div class="kv"><b>路径改写</b><span>来源用户目录 ' + esc(r.source_home) +
+          " 会自动换成这台机器的 " + esc(S.state ? S.state.home : "") + "</span></div>");
+      }
+
+      el.conflictNote.hidden = r.conflicts === 0;
+      if (r.conflicts){
+        el.conflictNote.querySelector("span").textContent =
+          "有 " + r.conflicts + " 个对话在这台电脑上已经存在。默认会跳过它们；想保留两份就打开下面的「重复的对话另存一份」。";
+      }
+      el.btnImport.disabled = S.running;
+      el.importNote.textContent = "将导入 " + r.sessions.length + " 个对话到这台电脑。";
+      return r;
+    });
+  }
+
+  function shortPath(p){
+    if (!p) return "";
+    var s = String(p).replace(/\\/g, "/").split("/").filter(Boolean);
+    return s.slice(-2).join("/");
+  }
+
+  el.importPath.addEventListener("input", scheduleInspect);
+  el.browseImport.addEventListener("click", function(){
+    api("/api/pick", { kind: "open", initial: el.importPath.value }).then(function(r){
+      if (r.path){ el.importPath.value = r.path; doInspect(r.path); }
+      else toast("没选到文件，也可以把路径直接粘进输入框");
+    });
+  });
+  el.browseRoot.addEventListener("click", function(){
+    api("/api/pick", { kind: "dir", initial: el.importRoot.value }).then(function(r){
+      if (r.path) el.importRoot.value = r.path;
+      else toast("没选到目录，也可以把路径直接粘进输入框");
+    });
+  });
+
+  el.btnImport.addEventListener("click", function(){
+    if (S.running || !el.pkg) return;
+    var root = el.importRoot.value.trim();
+    if (!root){ toast("先选择放哪里", true); return; }
+    api("/api/import", {
+      package: el.pkg.package,
+      root: root,
+      new_id: el.optNewId.checked,
+      overwrite: el.optOverwrite.checked,
+      no_workspace: el.optNoWs.checked
+    }).then(function(r){
+      if (!r.ok){ toast(r.error || "启动失败", true); return; }
+      watch(r.job, "正在导入", function(){
+        el.finishBox.classList.add("show");
+        setTimeout(loadState, 400);
+      });
+    });
+  });
+
+  el.btnRevealRoot.addEventListener("click", function(){
+    api("/api/reveal", { path: el.importRoot.value.trim() });
+  });
+  el.btnAgainImport.addEventListener("click", function(){
+    el.importPath.value = ""; el.pkg = null;
+    el.pkgCard.hidden = true; el.conflictNote.hidden = true;
+    el.finishBox.classList.remove("show");
+    el.btnImport.disabled = true;
+    el.importNote.textContent = "先选择一个迁移包。";
+  });
+
+  el.pkgToggle.addEventListener("click", function(){
+    var open = el.pkgBody.style.display !== "none";
+    el.pkgBody.style.display = open ? "none" : "block";
+    el.pkgToggle.textContent = open ? "展开明细" : "收起明细";
+  });
+
+  // ---------------- 诊断 ----------------
+  el.btnDoctor.addEventListener("click", function(){
+    if (S.running) return;
+    api("/api/doctor", {}).then(function(r){
+      if (!r.ok){ toast(r.error || "失败", true); return; }
+      watch(r.job, "环境自检");
+    });
+  });
+
+  // ---------------- 页签 ----------------
+  function setTab(name){
+    S.tab = name;
+    Array.prototype.forEach.call(document.querySelectorAll(".seg"), function(x){
+      x.classList.toggle("active", x.getAttribute("data-tab") === name);
+    });
+    $("panel-export").hidden = name !== "export";
+    $("panel-import").hidden = name !== "import";
+    if (name === "import" && !el.importRoot.value && S.state) el.importRoot.value = S.state.default_root;
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll(".seg"), function(b){
+    b.addEventListener("click", function(){ setTab(b.getAttribute("data-tab")); });
+  });
+
+  // ---------------- 启动 ----------------
+  if (!TOKEN){
+    document.body.insertAdjacentHTML("afterbegin",
+      '<div style="padding:14px 28px;background:#fdf1f1;border-bottom:1px solid #f3d3d4;color:#9d2f33;font-size:12px">' +
+      "缺少访问令牌。请通过启动窗口里给出的完整地址打开（地址末尾带 ?t=…）。</div>");
+  }
+  loadState().then(function(){
+    // 单文件包：本程序自己尾巴上就带着迁移包，直接停在导入页
+    var preset = S.state && S.state.preset_package;
+    if (!preset) return;
+    setTab("import");
+    el.importPath.value = preset;
+    document.title = "工作台迁移 · 迁移包";
+    el.importNote.textContent = "这个文件里自带迁移包，正在读取…";
+    return doInspect(preset).then(function(r){
+      if (r && r.ok){
+        el.importNote.textContent = "这个文件里自带迁移包，确认下面内容后点「开始导入」。";
+      }
+    });
+  });
+})();
+</script>
+</body>
+</html>

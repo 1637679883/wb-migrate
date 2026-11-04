@@ -1,0 +1,11 @@
+* text=auto eol=lf
+
+# Windows 批处理必须是 CRLF，否则 cmd.exe 解析异常
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# 二进制
+*.ico binary
+*.exe binary
+*.zip binary
+*.png binary

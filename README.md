@@ -33,7 +33,7 @@ WorkBuddy 的对话在云端跟着账号走，但真正让对话「能用」的�
 
 ### 方式一：用现成的 exe（Windows）
 
-从仓库的 Releases 页面下载 `工作台迁移.exe`，双击。它会开一个自己的窗口——不是浏览器、没有地址栏、不用装 Python、不用敲命令。不想下载二进制也可以照「方式二」自己跑源码。
+从 [Releases](../../releases/latest) 下载 `wb-migrate.exe`（17 MB），双击。它会开一个自己的窗口——不是浏览器、没有地址栏、不用装 Python、不用敲命令。下载后想改名成什么都行，不影响运行。不想下载二进制也可以照「方式二」自己跑源码。
 
 第一次运行 Windows 可能提示「已保护你的电脑」，因为程序没买代码签名证书。点「更多信息」→「仍要运行」即可，之后不再提示。
 
@@ -42,7 +42,7 @@ WorkBuddy 的对话在云端跟着账号走，但真正让对话「能用」的�
 需要 Python 3.8 以上。
 
 ```bash
-git clone https://github.com/<你的账号>/wb-migrate.git
+git clone https://github.com/1637679883/wb-migrate.git
 cd wb-migrate
 pip install -r requirements.txt   # 只有桌面窗口需要，命令行版零依赖
 python wb_app.py                  # 原生窗口

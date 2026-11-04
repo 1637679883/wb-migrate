@@ -133,12 +133,12 @@ workspace/<会话ID>/...            工作空间文件
 
 ## 导入时的落盘映射
 
-| 包内路径 | 落到哪里 |
-| --- | --- |
-| `transcript/<id>.jsonl` | `~/.workbuddy/projects/<按新 cwd 编码>/<id>.jsonl` |
-| `transcript/<id>.meta.json` | 同目录，同名 |
-| `aux/<kind>/<id>/...` | `~/.workbuddy/<实际目录>/<id>/...` |
-| `workspace/<id>/...` | `<新 cwd>/...`（cwd 由 `--workspace-root` + 原标题目录名推出） |
+包内路径与落地位置的对应关系：
+
+- `transcript/<id>.jsonl` → `~/.workbuddy/projects/<按新 cwd 编码>/<id>.jsonl`
+- `transcript/<id>.meta.json` → 同目录，同名
+- `aux/<kind>/<id>/...` → `~/.workbuddy/<实际目录>/<id>/...`
+- `workspace/<id>/...` → `<新 cwd>/...`，其中 cwd 由 `--workspace-root` 加上原目录名推出
 
 `aux` 里的名字和实际目录名不完全一致（比如 `workspace-sessions` 实际是 `workspace/sessions`），映射表在 `wb_migrate.py` 的 `AUX_DIRS` / `AUX_FILES` 里。
 

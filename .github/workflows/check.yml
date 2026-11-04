@@ -1,0 +1,21 @@
+name: check
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 语法检查
+        run: python -m compileall -q wb_migrate.py wb_gui.py wb_app.py make_icon.py
+      - name: 命令行入口可用
+        run: |
+          python wb_migrate.py --version
+          python wb_migrate.py --help > /dev/null
+          python wb_migrate.py doctor || true

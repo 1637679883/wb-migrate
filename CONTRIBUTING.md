@@ -8,7 +8,7 @@
 pip install -r requirements-dev.txt
 python wb_migrate.py list        # 核心逻辑，零依赖，先确认能读到本机会话
 python wb_app.py                 # 桌面窗口
-python build.cmd                 # 出 exe（Windows）
+build.cmd                        # 出 exe（Windows，双击或在 cmd 里运行）
 ```
 
 不想动真实数据时，用 `WORKBUDDY_HOME` 指向一个沙盒：
